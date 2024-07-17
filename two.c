@@ -5,14 +5,13 @@
 struct Colour{
     const char* name;
     int max_number_in_game;
-    const int max_allowed;
 };
 
 int max(int a, int b){
     return a > b ? a : b;
 }
 
-void update_max(char* token, struct Colour *colours, const int NUM_COLOURS){
+void update_max(const char* token, struct Colour *colours, const int NUM_COLOURS){
     int number = 0;
     char name[10]; // should really use malloc to prevent buffer overflow
     int result = sscanf(token, "%d %s", &number, name);
@@ -26,26 +25,16 @@ void update_max(char* token, struct Colour *colours, const int NUM_COLOURS){
     }
 }
 
-bool is_valid_game(struct Colour *colours, const int NUM_COLOURS){
-    for (int i = 0; i < NUM_COLOURS; i ++){
-        if (colours[i].max_number_in_game > colours[i].max_allowed){
-            return false;
-        }
-    }
-    return true;
-}
-
 /**
- * Part 1: parses the line to determine whether the game is valid,
- * and therefore whether to add the line_number to the sum
+ * Part 2: parses the line to determine the lowest possible number of each colour,
+ * (i.e. the maximum of each colour found) and multiplies the values together
  */
-bool parse_line_to_bool(const char* line, struct Colour* colours, const int num_colours){
-
+int parse_line_to_int(char* line, struct Colour* colours, const int NUM_COLOURS){
 
     char *token;
     token = strtok(line, ":");
 
-    for (int i = 0; i < num_colours; i ++){
+    for (int i = 0; i < NUM_COLOURS; i ++){
         colours[i].max_number_in_game = 0;
     }
 
@@ -54,12 +43,13 @@ bool parse_line_to_bool(const char* line, struct Colour* colours, const int num_
         if (!token){
             break;
         }
-        update_max(token, colours, num_colours);
+        update_max(token, colours, NUM_COLOURS);
     }
-    if (is_valid_game(colours, num_colours)){
-        return true;
+    int line_value = 1;
+    for (int i = 0; i < NUM_COLOURS; i ++){
+        line_value *= colours[i].max_number_in_game;
     }
-    return false;
+    return line_value;
 }
 
 int calculate_game_score(FILE* fptr){
@@ -72,17 +62,12 @@ int calculate_game_score(FILE* fptr){
     int sum = 0;
     const int NUM_COLOURS = 3;
     struct Colour colours[NUM_COLOURS] = {
-            {"red", 0, 12},
-            {"green", 0, 13},
-            {"blue", 0, 14}
+            {"red", 0},
+            {"green", 0},
+            {"blue", 0}
     };
-    int line_number = 0;
     while(fgets(input, LINE_LEN, fptr)) {
-        line_number++;
-        if (parse_line_to_bool(input, colours, NUM_COLOURS)){
-            sum += line_number;
-        }
-
+        sum += parse_line_to_int(input, colours, NUM_COLOURS);
     }
     return sum;
 }
