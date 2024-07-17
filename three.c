@@ -11,15 +11,18 @@ typedef struct PartNumber {
 } PartNumber;
 
 typedef struct Symbol {
+    char c;
     int row;
     int column;
+    int adjacent_part_nums_count;
+    int adjacent_part_nums_val;
 } Symbol;
 
 int min(int a, int b){
     return a < b ? a : b;
 }
 
-bool is_part_number(PartNumber part, Symbol *symbols, int num_symbols){
+void find_part_numbers(PartNumber part, Symbol *symbols, int num_symbols){
 
     for (int i = 0; i < num_symbols; i ++){
 
@@ -29,10 +32,11 @@ bool is_part_number(PartNumber part, Symbol *symbols, int num_symbols){
         bool adjacent_x = diff <=1;
         bool adjacent_y = abs(part.row - symbols[i].row) <=1;
         if (adjacent_x && adjacent_y){
-            return true;
+            symbols[i].adjacent_part_nums_count += 1;
+            symbols[i].adjacent_part_nums_val *= part.num;
+            return;
         }
     }
-    return false;
 }
 
 int calculate_sum(FILE* fptr){
@@ -69,7 +73,7 @@ int calculate_sum(FILE* fptr){
 
                 if (c != '.' && c != '\0' && c != '\n'){
                     // Symbol found
-                    Symbol s = {row, i};
+                    Symbol s = {c, row, i, 0, 1};
                     symbols[symbols_found] = s;
                     symbols_found ++;
                 }
@@ -84,11 +88,16 @@ int calculate_sum(FILE* fptr){
         }
         row ++;
     }
-    // Calculate sum
-    int sum = 0;
+    // Find part numbers
     for (int p = 0; p < part_numbers_found; p ++){
-        if (is_part_number(parts[p], symbols, symbols_found)){
-            sum += parts[p].num;
+        find_part_numbers(parts[p], symbols, symbols_found);
+    }
+
+    // Calculate solution
+    int sum = 0;
+    for (int s = 0; s < symbols_found; s ++){
+        if (symbols[s].c == '*' && symbols[s].adjacent_part_nums_count == 2){
+            sum += symbols[s].adjacent_part_nums_val;
         }
     }
 
