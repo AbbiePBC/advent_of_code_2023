@@ -1,27 +1,38 @@
+from dataclasses import dataclass
 import sys
 
+@dataclass
+class Scratchcard:
+    value: int
+    count: int = 1
 
-def parse_line(line: str) -> int:
+    @staticmethod
+    def parse_line_into_scratchcard(line: str) -> 'Scratchcard':
 
-    substrings = line.split(':')
-    substrings = substrings[1].strip().split('|')
-    winning_numbers = substrings[0].split(' ')
-    your_numbers = substrings[1].split(' ')
-    num_winners = 0
+        _, numbers = line.split(':')
+        winning_numbers, your_numbers = numbers.strip().split('|')
+        winning_numbers = winning_numbers.split()
+        your_numbers = your_numbers.split()
+        matching_numbers = set(winning_numbers) & set(your_numbers)
 
-    for num in your_numbers:
-        if num == '':
-            continue
-        elif num in winning_numbers:
-            num_winners += 1
-            continue
+        return Scratchcard(len(matching_numbers))
 
-    return 0 if num_winners == 0 else pow(2, num_winners - 1)
-
-
-def parse_input(filename: str):
+def parse_input(filename: str) -> list[Scratchcard]:
+    scratchcards = []
     with open(filename) as f:
-        return sum(parse_line(line) for line in f.readlines())
+        for line in f.readlines():
+            scratchcards.append(Scratchcard.parse_line_into_scratchcard(line))
+    return scratchcards
+
+def calculate_score(scratchcards: list[Scratchcard]) -> int:
+    score = 0
+    for i in range(len(scratchcards)):
+        score += scratchcards[i].count
+        for j in range(i + 1, i + scratchcards[i].value + 1):
+            # Assume no out of bounds error is possible with the given input
+            scratchcards[j].count += scratchcards[i].count
+
+    return score
 
 if __name__ == "__main__":
-    print(f"Solution: {parse_input(sys.argv[1])}")
+    print(f"Solution: {calculate_score(parse_input(sys.argv[1]))}")
