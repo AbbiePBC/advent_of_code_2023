@@ -8,55 +8,76 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-
-
 public class five {
 
     public class Almanac {
 
         private static List<Long> seeds = new ArrayList<Long>();
-        private static Map<Long, Long> seed_to_soil = new HashMap<Long, Long>();
-        private static Map<Long, Long> soil_to_fertilizer = new HashMap<Long, Long>();
-        private static Map<Long, Long> fertilizer_to_water = new HashMap<Long, Long>();
-        private static Map<Long, Long> water_to_light = new HashMap<Long, Long>();
-        private static Map<Long, Long> light_to_temperature = new HashMap<Long, Long>();
-        private static Map<Long, Long> temperature_to_humidity = new HashMap<Long, Long>();
-        private static Map<Long, Long> humidity_to_location = new HashMap<Long, Long>();
+        private static Map<Long, Long[]> seed_to_soil = new HashMap<Long, Long[]>();
+        private static Map<Long, Long[]> soil_to_fertilizer = new HashMap<Long, Long[]>();
+        private static Map<Long, Long[]> fertilizer_to_water = new HashMap<Long, Long[]>();
+        private static Map<Long, Long[]> water_to_light = new HashMap<Long, Long[]>();
+        private static Map<Long, Long[]> light_to_temperature = new HashMap<Long, Long[]>();
+        private static Map<Long, Long[]> temperature_to_humidity = new HashMap<Long, Long[]>();
+        private static Map<Long, Long[]> humidity_to_location = new HashMap<Long, Long[]>();
+
+        public static long get_value(long source, Map<Long, Long[]> map){
+            // given a map of seed : soil, range, and a seed to find
+            // returns the value of the soil
+            if (map.containsKey(source)){
+                // Debugging: System.out.printf("key in map with value: %d\n",map.get(source)[0] );
+                return map.get(source)[0];
+            }
+            // else, either the value is in a range somewhere
+            for (var entry : map.entrySet()) {
+                var val = entry.getValue();
+                var dest = val[0];
+                var range = val[1];
+                var src = entry.getKey();
+
+                if (source <= src + range && source > src){
+                    var diff = dest - src;
+                    // Debugging: System.out.printf("key in range in a map, with src %d dest %d and range %d : %d\n", src, dest, range, source + diff);
+                    return source + diff;
+                }
+            }
+            // or the value of the key == value
+            // Debugging: System.out.printf("key absent from map: %d\n", source );
+
+            return source;
+        }
 
         public static long calculate_solution(){
             long solution = Long.MAX_VALUE;
-            for (int i = 0; i < Almanac.seeds.size(); i ++){
-                long val = Almanac.seeds.get(i);
-                val = Almanac.seed_to_soil.getOrDefault(val, val);
-                val = Almanac.soil_to_fertilizer.getOrDefault(val, val);
-                val = Almanac.fertilizer_to_water.getOrDefault(val, val);
-                val = Almanac.water_to_light.getOrDefault(val, val);
-                val = Almanac.light_to_temperature.getOrDefault(val, val);
-                val = Almanac.temperature_to_humidity.getOrDefault(val, val);
-                val = Almanac.humidity_to_location.getOrDefault(val, val);
+            for (var seed: Almanac.seeds){
+                var val = get_value(seed, Almanac.seed_to_soil);
+                val = get_value(val, Almanac.soil_to_fertilizer);
+                val = get_value(val, Almanac.fertilizer_to_water);
+                val = get_value(val, Almanac.water_to_light);
+                val = get_value(val, Almanac.light_to_temperature);
+                val = get_value(val, Almanac.temperature_to_humidity);
+                val = get_value(val, Almanac.humidity_to_location);
+
                 solution = Math.min(solution, val);
             }
             return solution;
         }
 
-        public static Map<Long, Long> parse_entries(List<String> chunk){
-            Map<Long, Long> map = new HashMap<Long, Long>();
+        public static Map<Long, Long[]> parse_entries(List<String> chunk){
+            var map = new HashMap<Long, Long[]>();
 
             for (int i = 1; i < chunk.size(); i ++){
-                String[] vals = chunk.get(i).split(" ");
-                long dest = Long.valueOf(vals[0]);
-                long source = Long.valueOf(vals[1]);
-                long range = Long.valueOf(vals[2]);
-
-                for (int j = 0; j < range; j ++){
-                    map.put(source + j, dest + j);
-                }
+                var vals = chunk.get(i).split(" ");
+                var dest = Long.valueOf(vals[0]);
+                var source = Long.valueOf(vals[1]);
+                var range = Long.valueOf(vals[2]);
+                map.put(source, new Long[] { dest, range });
             }
             return map;
         }
 
         public static void parse_chunk(List<String> chunk){
-            String name = chunk.get(0);
+            var name = chunk.get(0);
             if (chunk.size() == 1 && name.startsWith("seeds:")){
                 String[] _seeds = name.split(" ");
                 for (int i = 1; i < _seeds.length; i++){
@@ -65,8 +86,7 @@ public class five {
             } else {
                 if (name.equals("seed-to-soil map:")){
                     seed_to_soil = parse_entries(chunk);
-                }
-                else if (name.equals("soil-to-fertilizer map:")){
+                } else if (name.equals("soil-to-fertilizer map:")){
                     soil_to_fertilizer = parse_entries(chunk);
                 } else if (name.equals("fertilizer-to-water map:")){
                     fertilizer_to_water = parse_entries(chunk);
@@ -84,6 +104,8 @@ public class five {
         }
 
         public static void parse_file(String input_file){
+            // File reading code copied from Stack Overflow:
+            // https://stackoverflow.com/questions/45826412/how-to-parse-a-simple-text-file-in-java
             FileInputStream stream = null;
             try {
                 stream = new FileInputStream(input_file);
@@ -103,7 +125,6 @@ public class five {
                     }
                 }
                 parse_chunk(current);
-                current.clear();
             } catch (IOException e) {
                 e.printStackTrace();
             }
