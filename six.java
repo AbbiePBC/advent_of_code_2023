@@ -1,6 +1,3 @@
-import java.util.ArrayList;
-import java.util.List;
-
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -10,49 +7,31 @@ public class six {
 
     public class Input {
 
-        private static List<Integer> times = new ArrayList<Integer>();
-        private static List<Integer> distances = new ArrayList<Integer>();
+        private static Long time;
+        private static Long distance;
 
         private static void set_times(String input){
-            var data = input.split(" ");
-            for (var val: data){
-                if (!val.equals("")){
-                    times.add(Integer.valueOf(val));
-                }
-            }
+            var data = input.replace(" ", "");
+            time = Long.valueOf(data);
         }
 
         private static void set_distances(String input){
-            var data = input.split(" ");
-            for (var val: data){
-                if (!val.equals("")){
-                    distances.add(Integer.valueOf(val));
-                }
-            }
+            var data = input.replace(" ", "");
+            distance = Long.valueOf(data);
         }
 
-        private static int ways_to_win_race(int i){
-            var time = times.get(i);
-            var dist = distances.get(i);
+        private static int calculate_solution(){
+            System.out.printf("Calculating winner for time %d over distance %d\n", time, distance);
             var ways_to_win = 0;
             // at start, hold button for x seconds => accelerates to x m/s
             for (int j = 0; j < time; j ++){
                 var remaining_time = time - j;
                 var final_time = remaining_time * j;
-                if (final_time > dist){
+                if (final_time > distance){
                     ways_to_win ++;
                 }
             }
             return ways_to_win;
-        }
-
-        public static int calculate_solution(){
-            var sol = 1;
-            for (int i = 0; i < times.size(); i ++){
-                System.out.printf("Ways to win race %d = %d\n", i, ways_to_win_race(i));
-                sol *= ways_to_win_race(i);
-            }
-            return sol;
         }
 
         public static void parse_file(String input_file){
@@ -76,11 +55,9 @@ public class six {
                         set_distances(data);
                     } else {
                         throw new Exception(String.format(
-                            "Unexpected input format. Incorrect line: %s", strLine));
+                            "Unexpected input format. Incorrect line: %s\n", strLine));
                     }
                 }
-                System.out.println(times);
-                System.out.println(distances);
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (Exception e) {
