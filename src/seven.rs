@@ -1,38 +1,16 @@
-// --- Day 7: Camel Cards ---
+// In Camel Cards, you get a list of hands, and your goal is to order them based on the strength of each hand.
+//A hand consists of five cards labeled one of A, K, Q, J, T, 9, 8, 7, 6, 5, 4, 3, or 2. The relative strength of each card follows this order, where A is the highest and 2 is the lowest.
 //
-// Your all-expenses-paid trip turns out to be a one-way, five-minute ride in an airship. (At least it's a cool airship!) It drops you off at the edge of a vast desert and descends back to Island Island.
-//
-// "Did you bring the parts?"
-//
-// You turn around to see an Elf completely covered in white clothing, wearing goggles, and riding a large camel.
-//
-// "Did you bring the parts?" she asks again, louder this time. You aren't sure what parts she's looking for; you're here to figure out why the sand stopped.
-//
-// "The parts! For the sand, yes! Come with me; I will show you." She beckons you onto the camel.
-//
-// After riding a bit across the sands of Desert Island, you can see what look like very large rocks covering half of the horizon. The Elf explains that the rocks are all along the part of Desert Island that is directly above Island Island, making it hard to even get there. Normally, they use big machines to move the rocks and filter the sand, but the machines have broken down because Desert Island recently stopped receiving the parts they need to fix the machines.
-//
-// You've already assumed it'll be your job to figure out why the parts stopped when she asks if you can help. You agree automatically.
-//
-// Because the journey will take a few days, she offers to teach you the game of Camel Cards. Camel Cards is sort of similar to poker except it's designed to be easier to play while riding a camel.
-//
-// In Camel Cards, you get a list of hands, and your goal is to order them based on the strength of each hand. A hand consists of five cards labeled one of A, K, Q, J, T, 9, 8, 7, 6, 5, 4, 3, or 2. The relative strength of each card follows this order, where A is the highest and 2 is the lowest.
-//
-// Every hand is exactly one type. From strongest to weakest, they are:
-//
-//     Five of a kind, where all five cards have the same label: AAAAA
-//     Four of a kind, where four cards have the same label and one card has a different label: AA8AA
-//     Full house, where three cards have the same label, and the remaining two cards share a different label: 23332
-//     Three of a kind, where three cards have the same label, and the remaining two cards are each different from any other card in the hand: TTT98
-//     Two pair, where two cards share one label, two other cards share a second label, and the remaining card has a third label: 23432
-//     One pair, where two cards share one label, and the other three cards have a different label from the pair and each other: A23A4
-//     High card, where all cards' labels are distinct: 23456
 //
 // Hands are primarily ordered based on type; for example, every full house is stronger than any three of a kind.
 //
-// If two hands have the same type, a second ordering rule takes effect. Start by comparing the first card in each hand. If these cards are different, the hand with the stronger first card is considered stronger. If the first card in each hand have the same label, however, then move on to considering the second card in each hand. If they differ, the hand with the higher second card wins; otherwise, continue with the third card in each hand, then the fourth, then the fifth.
+// If two hands have the same type, a second ordering rule takes effect.
+// Start by comparing the first card in each hand. If these cards are different, the hand with the stronger first card is considered stronger.
+// If the first card in each hand have the same label, however, then move on to considering the second card in each hand.
+// If they differ, the hand with the higher second card wins; otherwise, continue with the third card in each hand, then the fourth, then the fifth.
 //
-// So, 33332 and 2AAAA are both four of a kind hands, but 33332 is stronger because its first card is stronger. Similarly, 77888 and 77788 are both a full house, but 77888 is stronger because its third card is stronger (and both hands have the same first and second card).
+// So, 33332 and 2AAAA are both four of a kind hands, but 33332 is stronger because its first card is stronger.
+// Similarly, 77888 and 77788 are both a full house, but 77888 is stronger because its third card is stronger (and both hands have the same first and second card).
 //
 // To play Camel Cards, you are given a list of hands and their corresponding bid (your puzzle input). For example:
 //
@@ -53,6 +31,83 @@
 // Now, you can determine the total winnings of this set of hands by adding up the result of multiplying each hand's bid with its rank (765 * 1 + 220 * 2 + 28 * 3 + 684 * 4 + 483 * 5). So the total winnings in this example are 6440.
 //
 // Find the rank of every hand in your set. What are the total winnings?
+
+use std::fs::read_to_string;
+use std::collections::HashMap;
+
+#[derive(Clone, Debug)]
+struct Hand {
+    set: String,
+    initial_rank: i32,
+    final_rank: i32,
+    value: i32,
+}
+
+impl Hand {
+    fn new(set: String, value: i32) -> Hand {
+        return Hand {
+            set,
+            value,
+            initial_rank: -1,
+            final_rank : -1
+        };
+    }
+    //0     Five of a kind, where all five cards have the same label: AAAAA
+    //1     Four of a kind, where four cards have the same label and one card has a different label: AA8AA
+    //2     Full house, where three cards have the same label, and the remaining two cards share a different label: 23332
+    //3     Three of a kind, where three cards have the same label, and the remaining two cards are each different from any other card in the hand: TTT98
+    //4     Two pair, where two cards share one label, two other cards share a second label, and the remaining card has a third label: 23432
+    //5     One pair, where two cards share one label, and the other three cards have a different label from the pair and each other: A23A4
+    //6     High card, where all cards' labels are distinct: 23456
+    fn set_initial_rank(&mut self){
+        let mut cards_count: HashMap<char, i32> = HashMap::new();
+        for card in self.set.chars() {
+            *cards_count.entry(card).or_insert(0) += 1;
+        }
+        let mut count: Vec<i32> = cards_count.into_values().collect::<Vec<i32>>();
+            count.sort();
+            self.initial_rank = match count.as_slice() {
+                [5] => 0, // Five of a kind
+                [1, 4] => 1, // Four of a kind
+                [2, 3] => 2, // Full house
+                [1, 1, 3] => 3, // Three of a kind
+                [1, 2, 2] => 4, // Two pair
+                [1, 1, 1, 2] => 5, // One pair
+                _ => 6, // High card
+            };
+    }
+
+}
+
+struct Round {
+    hands: Vec<Hand>,
+}
+
+impl Round {
+    fn new(input: &str) -> Round {
+        let input_lines: Vec<&str> = input.split("\n").collect();
+
+        let mut round: Vec<Hand> = vec![Hand::new("".to_string(), 0); 4];
+        for i in 0..4 {
+            if input_lines[i].is_empty() {
+                break;
+            } else {
+                let data: Vec<&str> = input_lines[i].split(" ").collect();
+                round[i].set = data[0].to_string();
+                round[i].value = data[1].parse::<i32>().unwrap();
+                round[i].set_initial_rank();
+            }
+        }
+        return Round { hands : round };
+    }
+
+    fn calculate_rank(self) -> i32 {
+        return self.hands.iter().map(|hand| hand.final_rank * hand.value).sum()
+    }
+}
 fn main() {
-    println!("Hello, world!");
+    let input_data = read_to_string("inputs/seven_example.txt").unwrap();
+    let mut round = Round::new(&input_data);
+    round.calculate_rank();
+    println!("{:?}", round.hands);
 }
