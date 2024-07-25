@@ -27,8 +27,22 @@ impl Hand {
         for card in self.set.chars() {
             *cards_count.entry(card).or_insert(0) += 1;
         }
+
+        let mut num_jokers = 0;
+        if cards_count.contains_key(&'J') {
+            num_jokers = cards_count.remove(&'J').unwrap();
+        }
+
         let mut count: Vec<i64> = cards_count.into_values().collect::<Vec<i64>>();
         count.sort();
+        let num_card_types = count.len();
+        if num_card_types == 0 {
+            self.initial_rank = 6; // same as setting count to [5]
+            return;
+        } else {
+            count[num_card_types - 1] += num_jokers;
+        }
+
         self.initial_rank = match count.as_slice() {
             [5] => 6,          // Five of a kind
             [1, 4] => 5,       // Four of a kind
@@ -71,16 +85,16 @@ impl Round {
             'A' => 12,
             'K' => 11,
             'Q' => 10,
-            'J' => 9,
-            'T' => 8,
-            '9' => 7,
-            '8' => 6,
-            '7' => 5,
-            '6' => 4,
-            '5' => 3,
-            '4' => 2,
-            '3' => 1,
-            '2' => 0,
+            'T' => 9,
+            '9' => 8,
+            '8' => 7,
+            '7' => 6,
+            '6' => 5,
+            '5' => 4,
+            '4' => 3,
+            '3' => 2,
+            '2' => 1,
+            'J' => 0,
             _ => unreachable!(),
         });
         card_vec
