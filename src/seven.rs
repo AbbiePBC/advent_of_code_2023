@@ -28,21 +28,32 @@ impl Hand {
             *cards_count.entry(card).or_insert(0) += 1;
         }
 
-        let mut num_jokers = 0;
-        if cards_count.contains_key(&'J') {
-            num_jokers = cards_count.remove(&'J').unwrap();
-        }
+        let num_jokers = cards_count.remove(&'J').unwrap_or(0);
 
-        let mut count: Vec<i64> = cards_count.into_values().collect::<Vec<i64>>();
+        let mut count: Vec<i64> = cards_count.into_values().collect();
         count.sort();
-        let num_card_types = count.len();
-        if num_card_types == 0 {
-            self.initial_rank = 6; // same as setting count to [5]
-            return;
-        } else {
-            count[num_card_types - 1] += num_jokers;
-        }
 
+        // Handle cases with jokers more cleanly
+        count = match (count.as_slice(), num_jokers) {
+            ([], n) => vec![n], // if only jokers, count = [5]
+
+            // learning point: the below arm is the same as the following.
+            // count = if num_jokers > 0 {
+            //      let mut c = count.to_owned();
+            //      c[c.len() - 1] += num_jokers;
+            //      c
+            // }
+            // i.e. you can use val = if statement {...; v} to set val to v.
+
+            (c, n) if n > 0 => { // if jokers present, add to final element of vector
+                let mut c = c.to_owned();
+                let final_idx = c.len() - 1;
+                c[final_idx] += n;
+                c
+            }
+
+            (c, _) => c.to_owned(), // if n <= 0, i.e. no jokers condition
+        };
         self.initial_rank = match count.as_slice() {
             [5] => 6,          // Five of a kind
             [1, 4] => 5,       // Four of a kind
@@ -99,48 +110,44 @@ impl Round {
         });
         card_vec
     }
-
-    fn get_next(&self, mut char_idx: usize, idxes: Vec<usize>) -> usize {
+    fn get_next(&self, mut char_idx: usize, idxes: Vec<usize>) -> Option<usize> {
         let mut char_dict: HashMap<char, Vec<usize>> = HashMap::new();
         for idx in idxes {
             let hand = &self.hands[idx];
-            let key: char = hand.set.chars().collect::<Vec<char>>()[char_idx];
-            char_dict
-                .entry(key)
-                .and_modify(|vals| vals.push(idx))
-                .or_insert(vec![idx]);
+            let key = hand.set.chars().nth(char_idx)?; // Use nth and Option to handle potential panics
+            char_dict.entry(key).or_default().push(idx);
         }
 
-        // sort dict by key value
         let sorted_cards = Self::sort_cards(&char_dict);
-
         for (_key, vals) in sorted_cards {
-            if vals.len() == 1 {
-                return vals[0];
+            return if vals.len() == 1 {
+                Some(vals[0])
             } else {
                 char_idx += 1;
-                return self.get_next(char_idx, vals.to_vec());
-            }
+                self.get_next(char_idx, vals)
+            };
         }
-        // throw error or make the return type Optional and return None
-        return usize::max_value();
+
+        None // Return None if no matching hand is found
     }
 
+
     fn calculate_final_ranks(&mut self) {
-        let mut rank: i64 = 1;
-        let char_idx: usize = 0;
+        let mut rank = 1;
+        let char_idx = 0;
 
         let mut initial_rank_to_hand: HashMap<i64, Vec<usize>> = HashMap::new();
-        for i in 0..self.hands.len() {
+        for (i, hand) in self.hands.iter().enumerate() {
             initial_rank_to_hand
-                .entry(self.hands[i].initial_rank)
-                .and_modify(|vals| vals.push(i))
-                .or_insert(vec![i]);
+                .entry(hand.initial_rank)
+                .or_default()
+                .push(i);
         }
+
         for key in initial_rank_to_hand.keys().sorted() {
-            let mut to_rank: Vec<usize> = initial_rank_to_hand.get(key).unwrap().to_vec();
+            let mut to_rank = initial_rank_to_hand.get(key).unwrap().to_vec();
             while !to_rank.is_empty() {
-                let prev_idx = self.get_next(char_idx, to_rank.clone());
+                let prev_idx = self.get_next(char_idx, to_rank.clone()).unwrap();
                 to_rank.remove(to_rank.iter().position(|x| *x == prev_idx).unwrap());
                 self.hands[prev_idx].final_rank = rank;
                 rank += 1;
