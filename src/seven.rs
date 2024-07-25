@@ -8,7 +8,6 @@ use std::env;
 struct Hand {
     set: String,
     initial_rank: i64,
-    final_rank: i64,
     value: i64,
 }
 
@@ -18,7 +17,6 @@ impl Hand {
             set,
             value,
             initial_rank: -1,
-            final_rank: -1,
         };
     }
 
@@ -93,6 +91,7 @@ impl Round {
         let mut card_vec: Vec<(char, Vec<usize>)> =
             cards.iter().map(|(&c, v)| (c, v.clone())).collect();
         card_vec.sort_by_key(|&(c, _)| match c {
+            // should extract into a separate fn
             'A' => 12,
             'K' => 11,
             'Q' => 10,
@@ -110,6 +109,7 @@ impl Round {
         });
         card_vec
     }
+
     fn get_next(&self, mut char_idx: usize, idxes: Vec<usize>) -> Option<usize> {
         let mut char_dict: HashMap<char, Vec<usize>> = HashMap::new();
         for idx in idxes {
@@ -132,9 +132,10 @@ impl Round {
     }
 
 
-    fn calculate_final_ranks(&mut self) {
+    fn calculate_solution(&mut self) -> i64{
         let mut rank = 1;
         let char_idx = 0;
+        let mut sol = 0;
 
         let mut initial_rank_to_hand: HashMap<i64, Vec<usize>> = HashMap::new();
         for (i, hand) in self.hands.iter().enumerate() {
@@ -149,27 +150,17 @@ impl Round {
             while !to_rank.is_empty() {
                 let prev_idx = self.get_next(char_idx, to_rank.clone()).unwrap();
                 to_rank.remove(to_rank.iter().position(|x| *x == prev_idx).unwrap());
-                self.hands[prev_idx].final_rank = rank;
+                sol += rank * self.hands[prev_idx].value;
                 rank += 1;
             }
         }
-        // for hand in &self.hands {
-        //     println!(&hand.set, hand.final_rank, hand.value);
-        // }
+        return sol;
     }
 
-    fn calculate_solution(self) -> i64 {
-        return self
-            .hands
-            .iter()
-            .map(|hand| hand.final_rank * hand.value)
-            .sum();
-    }
 }
 fn main() {
     let args: Vec<String> = env::args().collect();
     let input_data = read_to_string(&args[1]).unwrap();
     let mut round = Round::new(&input_data);
-    round.calculate_final_ranks();
     println!("Solution: {}", round.calculate_solution());
 }
