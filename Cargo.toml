@@ -11,3 +11,8 @@ itertools = "0.13.0"
 [[bin]]
 name = "seven"
 path = "src/seven.rs"
+
+
+[[bin]]
+name = "eight"
+path = "src/eight.rs"
