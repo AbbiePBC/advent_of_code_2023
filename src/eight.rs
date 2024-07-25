@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use std::fs::read_to_string;
-use std::env;
-use num::integer::lcm;
 use itertools::Itertools;
+use num::integer::lcm;
+use std::collections::HashMap;
+use std::env;
+use std::fs::read_to_string;
 
 #[derive(Debug)]
 struct Data {
@@ -14,62 +14,62 @@ struct Data {
 impl Data {
     fn new(path: String) -> Data {
         let input_data = read_to_string(path).unwrap();
-        let input_lines: Vec<&str> = input_data.split("\n").collect();
+        let input_lines: Vec<&str> = input_data.lines().collect();
 
         let steps = input_lines[0].to_string();
-        let mut map: HashMap<String, (String, String)> = HashMap::new();
-        let mut starting_points : Vec<String> = Vec::new();
-        for i in 2..input_lines.len() - 1 {
-            let vals: Vec<&str> = input_lines[i]
-                .split(&[' ', '=', ',', '(', ')'])
-                .filter(|x| !x.is_empty())
-                .collect();
-            let step = vals[0].to_string();
-            map.insert(
-                step.clone(),
-                (vals[1].to_string(), vals[2].to_string()),
-            );
-            if step.to_string().ends_with("A"){
-                starting_points.push(step);
-            }
-        }
-        return Data { steps, map, starting_points };
+
+        let map: HashMap<String, (String, String)> = input_lines[2..input_lines.len()]
+            .iter()
+            .map(|line| {
+                line.split(&[' ', '=', ',', '(', ')'])
+                    .filter(|x| !x.is_empty())
+                    .collect_tuple::<(_, _, _)>()
+                    .map(|(step, left, right)| {
+                        (step.to_string(), (left.to_string(), right.to_string()))
+                    })
+                    .unwrap()
+            })
+            .collect();
+
+        let starting_points: Vec<String> = map
+            .keys()
+            .filter(|key| key.ends_with("A"))
+            .cloned()
+            .collect();
+
+        return Data {
+            steps,
+            map,
+            starting_points,
+        };
     }
 
     fn traverse(&self) -> usize {
-        let mut num_steps_taken: usize;
-        let mut current_step: usize;
-        let steps: Vec<char> = self.steps.chars().collect_vec();
-        let num_journeys: usize = self.starting_points.len();
-        let mut repeat_lens: Vec<usize> = Vec::new();
-        // TODO: there are more efficient ways of doing this, e.g. the loops the other way around
-        // as we then don't have to get the step as often, but it'll do§
-        for i in 0..num_journeys{
-            num_steps_taken = 0;
-            current_step = 0;
-            let mut current = self.starting_points[i].clone();
-            while !current.ends_with("Z") {
-                let step = steps[current_step];
-                let options = self.map.get(&current).unwrap();
-                current = match step {
-                    'L' => options.0.to_string(),
-                    'R' => options.1.to_string(),
-                    _ => unreachable!(),
-                };
-                num_steps_taken += 1;
-                current_step = (current_step + 1) % steps.len();
-            }
-            repeat_lens.push(num_steps_taken);
-        }
+        let steps: Vec<char> = self.steps.chars().collect();
+        let repeat_lens: Vec<usize> = self
+            .starting_points
+            .iter()
+            .map(|start| {
+                let mut num_steps_taken = 0;
+                let mut current_step = 0;
+                let mut current = start.clone();
+                while !current.ends_with("Z") {
+                    let step = steps[current_step];
+                    let options = self.map.get(&current).unwrap();
+                    current = match step {
+                        'L' => options.0.clone(),
+                        'R' => options.1.clone(),
+                        _ => unreachable!(),
+                    };
+                    num_steps_taken += 1;
+                    current_step = (current_step + 1) % steps.len();
+                }
+                num_steps_taken
+            })
+            .collect();
 
-        let mut sol = repeat_lens[0];
-        for i in 0..repeat_lens.len() - 1 {
-            sol = lcm(sol, repeat_lens[i+1]);
-        }
-
-        return sol;
+        return repeat_lens.iter().fold(1, |acc, &next| lcm(acc, next));
     }
-
 }
 
 fn main() {
