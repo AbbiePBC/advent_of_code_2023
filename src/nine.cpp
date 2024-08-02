@@ -16,7 +16,7 @@ class Sequence {
             return true;
         }
 
-        static int next_in_sequence(std::vector<int> current_sequence){
+        static int previous_in_sequence(std::vector<int> current_sequence){
 
             std::vector<int> new_seq;
             new_seq.reserve(current_sequence.size() - 1);
@@ -26,8 +26,8 @@ class Sequence {
             if (all_zeroes(new_seq)) {
                 return 0;
             } else {
-                int next = next_in_sequence(new_seq);
-                return new_seq[new_seq.size() -1] + next;
+                int prev = previous_in_sequence(new_seq);
+                return new_seq[0] - prev;
             }
         }
 
@@ -58,8 +58,8 @@ class Sequence {
             int running_total = 0;
             while (getline(file, line)) {
                 std::vector<int> current_sequence = Sequence::split(line);
-                int next = next_in_sequence(current_sequence) + current_sequence[current_sequence.size() - 1];
-                running_total += next;
+                int prev = current_sequence[0] - previous_in_sequence(current_sequence);
+                running_total += prev;
             }
             file.close();
             return running_total;
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 
     try {
         auto sol = Sequence::parse_and_solve(argv[1]);
-        std::cout << "Solution 1: " << sol << std::endl;
+        std::cout << "Solution 2: " << sol << std::endl;
         return 0;
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
