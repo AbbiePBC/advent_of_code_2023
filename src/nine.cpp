@@ -1,82 +1,78 @@
-// The input contains all possible paths between the points, and we want to visit all paths.
-// => get all permutations of points, add up the distances for each path, submit min.
-// all paths are bidirectional, but there aren't many -> duplicate info in dict for ease
-#include <map>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
 
-std::vector<std::string> split(std::string line){
-    std::vector<std::string> v;
-    char delim = ' ';
-    char *token = std::strtok(const_cast<char*>(line.c_str()), &delim);
-    while (token != nullptr)
-    {
-        v.push_back(std::string(token));
-        token = std::strtok(nullptr, &delim);
-    }
 
-    return v;
-}
+class Sequence {
 
-
-class Paths {
     private:
-        std::map<std::string, std::map<std::string, int> > paths;
+        static bool all_zeroes(const std::vector<int>& seq){
+            for (int i : seq){
+                if (i != 0){
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        static int next_in_sequence(std::vector<int> current_sequence){
+
+            std::vector<int> new_seq;
+            new_seq.reserve(current_sequence.size() - 1);
+            for (int i = 0; i < current_sequence.size() - 1; i ++){
+                new_seq.push_back(current_sequence[i+1] - current_sequence[i]);
+            }
+            if (all_zeroes(new_seq)) {
+                return 0;
+            } else {
+                int next = next_in_sequence(new_seq);
+                return new_seq[new_seq.size() -1] + next;
+            }
+        }
+
+        static std::vector<int> split(const std::string& line){
+            std::vector<int> v;
+            char delim = ' ';
+            char *token = std::strtok(const_cast<char*>(line.c_str()), &delim);
+            while (token != nullptr)
+            {
+                v.push_back(stoi(std::string(token)));
+                token = std::strtok(nullptr, &delim);
+            }
+
+            return v;
+        }
 
     public:
-        explicit Paths(std::string filename) {
 
+        static int parse_and_solve(const std::string& filename) {
             std::ifstream file(filename);
+
             if (!file.is_open()) {
                 auto err = "Failed to open file: ";
                 throw std::invalid_argument(err + filename);
             }
 
             std::string line;
+            int running_total = 0;
             while (getline(file, line)) {
-                auto vec = split(line);
-                auto source = vec[0];
-                auto dest = vec[2];
-                auto dist = std::stoi(vec[4]);
-                paths[source][dest] = dist;
-                paths[dest][source] = dist;
+                std::vector<int> current_sequence = Sequence::split(line);
+                int next = next_in_sequence(current_sequence) + current_sequence[current_sequence.size() - 1];
+                running_total += next;
             }
             file.close();
+            return running_total;
         }
-
-        std::pair<int, int> get_solutions(){
-            std::vector<std::string> points;
-            int shortest = INT_MAX;
-            int longest = 0;
-
-            for (const auto& [k, v] : paths) {
-                points.push_back(k);
-            }
-
-            do {
-                int current = 0;
-                for (int i = 0; i < points.size() - 1; i ++){
-                    current += paths[points[i]][points[i+1]];
-                }
-                shortest = std::min(current, shortest);
-                longest = std::max(current, longest);
-            }
-            while (std::next_permutation(points.begin(), points.end()));
-            return std::pair<int, int>(shortest, longest);
-        }
-
 
 };
+
 
 int main(int argc, char *argv[]) {
 
     try {
-        auto paths = Paths(argv[1]);
-        auto sols = paths.get_solutions();
-        std::cout << "Solution 1: " << sols.first << std::endl;
-        std::cout << "Solution 2: " << sols.second << std::endl;
+        auto sol = Sequence::parse_and_solve(argv[1]);
+        std::cout << "Solution 1: " << sol << std::endl;
         return 0;
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
